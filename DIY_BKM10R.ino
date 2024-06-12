@@ -2,6 +2,8 @@
 //
 // U8G2
 // Rotary Encoder
+// Arduino-Pico Core
+// NeoPixel
 // 
 
 #include "defines.h"
