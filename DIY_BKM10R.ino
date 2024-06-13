@@ -1,14 +1,16 @@
 // Using Libraries:
 //
 // U8G2
-// Rotary Encoder
-// Arduino-Pico Core
+// Rotary Encoder 
+// Arduino-Pico
 // NeoPixel
+// IRRempte       https://github.com/Arduino-IRremote/Arduino-IRremote
 // 
 
 #include "defines.h"
 #include "RotaryEncoder.h"
 #include "display.h"
+#include "ircomm.hpp"
 
 
 //------------------
@@ -17,6 +19,7 @@
 
 bool m_bEncoderButtonEdge  = false;
 bool m_bFunctionButtonEdge = false;
+unsigned long m_lActualTime;
 
 // Setup a RotaryEncoder with 2 steps per latch for the 2 signal input pins:
 RotaryEncoder encoder( PIN_ENCODER_2, PIN_ENCODER_1, RotaryEncoder::LatchMode::TWO03 );
@@ -27,6 +30,12 @@ void setup()
   // Der Pi Pico kann so konfiguriert werden und der Core
   // unterstützt das.
   
+  // Encoder Buttons
+  pinMode( PIN_ENCODER_1, INPUT_PULLUP );        // Encoder Eingang 1
+  pinMode( PIN_ENCODER_2, INPUT_PULLUP );        // Encoder Eingang 2
+  pinMode( PIN_ENCODER_BUTTON,  INPUT_PULLUP );  // Drehencoder Eindrücken
+  pinMode( PIN_FUNCTION_BUTTON, INPUT_PULLUP );  // "Reset" Taster
+
   // RS422 Kommunikation zum Monitor
   // Alternative Pins benutzen
   Serial1.setTX( PIN_RS485_TX );
@@ -38,12 +47,9 @@ void setup()
 
   // Display Konfiguration
   display_init();
-  
-  // Encoder Buttons
-  pinMode( PIN_ENCODER_1, INPUT_PULLUP );        // Encoder Eingang 1
-  pinMode( PIN_ENCODER_2, INPUT_PULLUP );        // Encoder Eingang 2
-  pinMode( PIN_ENCODER_BUTTON,  INPUT_PULLUP );  // Drehencoder Eindrücken
-  pinMode( PIN_FUNCTION_BUTTON, INPUT_PULLUP );  // "Reset" Taster
+
+  // Remote control
+  ircomm_init();
 }
 
 // Invertierendes Lesen, alle Eingänge schalten auf Low
@@ -73,11 +79,16 @@ static void ReadInputs( void )
   
   if (pos != newPos) 
   {
+    int iDirection = (int)encoder.getDirection();
+    
     Serial.print("pos:");
     Serial.print(newPos);
     Serial.print(" dir:");
-    Serial.println((int)(encoder.getDirection()));
+    Serial.println( iDirection );
     pos = newPos;
+
+    if ( 1 == iDirection ) display_set_contrast( true,  false );
+    else                   display_set_contrast( false, true  );
   } // if
 
   // Buffer zur Flankenerkennung
@@ -87,8 +98,15 @@ static void ReadInputs( void )
 
 void loop() 
 {
+  // Zeitstempel, Senderaster
+  m_lActualTime = millis();
+  
   ReadInputs();
   
-  display_loop( m_bEncoderButtonEdge, m_bFunctionButtonEdge, false, false );
-
+  ircomm_exec ( m_lActualTime );
+  display_exec ( ircomm_get_event( Left,   PressEvent ), 
+                 ircomm_get_event( Right,  PressEvent ), 
+                 m_bEncoderButtonEdge,  // Enter Command
+                 ircomm_get_event( Yellow, PressEvent )
+               );                 // Switch active Pot command
 }

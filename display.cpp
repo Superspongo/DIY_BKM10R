@@ -20,6 +20,7 @@ Adafruit_NeoPixel pixels(3, PIN_LCD_RGB, NEO_GRB + NEO_KHZ800);
 
 // Global Variables
 unsigned long lStartTime;
+byte yContrast = 50;
 
 byte ayCursorPositionP12[] = { PAGE1COL1, PAGE1ROW1CURSOR };
 byte ayCursorPositionP3[]  = { PAGE3COL1, PAGE3ROW1CURSOR };
@@ -191,7 +192,7 @@ static void updateButtonBitfields( void )
   if ( abButtonStates[ IDX_SAFEAREA   ] ) wButtonStatesP2 |=  BUTTON_MASK_R2C5;
   else                                    wButtonStatesP2 &= ~BUTTON_MASK_R2C5;
   if ( abButtonStates[ IDX_PHASE      ] ) wButtonStatesP3 |=  BUTTON_MASK_KNOB1;
-  else                                    wButtonStatesP3 &= ~BUTTON_MASK_KNOB2;
+  else                                    wButtonStatesP3 &= ~BUTTON_MASK_KNOB1;
   if ( abButtonStates[ IDX_CHROMA     ] ) wButtonStatesP3 |=  BUTTON_MASK_KNOB2;
   else                                    wButtonStatesP3 &= ~BUTTON_MASK_KNOB2;                 
   if ( abButtonStates[ IDX_BRIGHTNESS ] ) wButtonStatesP3 |=  BUTTON_MASK_KNOB3;
@@ -508,7 +509,7 @@ static void displayPage( byte yPageNumber )
 }
 
 
-void display_loop( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator, bool bEnter ) 
+void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator, bool bEnter ) 
 {
   if ( lStartTime != BOOT_DONE )
   {
@@ -728,7 +729,7 @@ void display_init( void )
   SPI.setCS( 5 );  // unused
   
   display.begin();
-  display.setContrast(40);
+  display.setContrast( CONTRAST_LCD_DEF );
 
   // Display Sony Logo
   displayBootLogo();
@@ -740,4 +741,35 @@ void display_init( void )
   pixels.setPixelColor(2, pixels.Color(0, 0, 50));
   pixels.setBrightness( 250 );
   pixels.show();
+}
+
+void display_set_contrast( bool bUp, bool bDown )
+{
+  if ( bUp )
+  {
+    if ( yContrast < CONTRAST_LCD_MAX )
+    {
+      yContrast+=1;
+    }
+    else 
+    {
+      yContrast = CONTRAST_LCD_MAX;
+    }
+  } 
+
+  if ( bDown )
+  {
+    if ( yContrast > CONTRAST_LCD_MIN )
+    {
+      yContrast-=1;
+    }
+    else 
+    {
+      yContrast = CONTRAST_LCD_MIN;
+    }
+  } 
+
+  Serial.print( "Contrast: ");
+  Serial.println( yContrast );
+  display.setContrast( yContrast );
 }

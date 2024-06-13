@@ -1,6 +1,10 @@
 //---------------------------
 // Display Defines
 //---------------------------
+#define CONTRAST_LCD_MIN (   1 ) 
+#define CONTRAST_LCD_MAX ( 100 ) // 125 is basically white already
+#define CONTRAST_LCD_DEF (  10 ) 
+
 #define BOOT_LOGO_TIME  ( 3000 )  // Boot logo in ms
 #define BOOT_DONE       ( 0xFFFFFFFFU )
 
@@ -108,4 +112,5 @@ enum eRowsPage1Cursor
 //--------------------
 
 void display_init( void );
-void display_loop( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator, bool bEnter );
+void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator, bool bEnter );
+void display_set_contrast( bool bUp, bool bDown );
