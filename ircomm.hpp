@@ -48,13 +48,6 @@ typedef enum
   HoldEvent
 }IRCOMM_FUNC;
 
-// typedef struct 
-// {
-//   uint8_t yEventFlags;
-//   uint16_t wFirstReceived;
-//   uint16_t wLastHoldEvent;
-// }IRCOMM_RUNTIME_TY;
-
 void ircomm_init( void );
 void ircomm_exec ( unsigned long lActualTime );
 bool ircomm_get_event ( IRCOMM_BUTTON eButton, IRCOMM_FUNC eFunction );

@@ -4,7 +4,7 @@
 // Rotary Encoder 
 // Arduino-Pico
 // NeoPixel
-// IRRempte       https://github.com/Arduino-IRremote/Arduino-IRremote
+// IRRemote       https://github.com/Arduino-IRremote/Arduino-IRremote
 // 
 
 #include "defines.h"
@@ -12,6 +12,7 @@
 #include "display.h"
 #include "ircomm.hpp"
 
+#define DEBOUNCE_TIME (   300 )    // in Milliseconds
 
 //------------------
 // Global variables
@@ -19,7 +20,11 @@
 
 bool m_bEncoderButtonEdge  = false;
 bool m_bFunctionButtonEdge = false;
+
 unsigned long m_lActualTime;
+unsigned long m_lLastEncoderEdge = 0;    // the last time the output pin was toggled
+
+static bool m_bToggleShift = false;
 
 // Setup a RotaryEncoder with 2 steps per latch for the 2 signal input pins:
 RotaryEncoder encoder( PIN_ENCODER_2, PIN_ENCODER_1, RotaryEncoder::LatchMode::TWO03 );
@@ -60,40 +65,58 @@ static bool ReadSe( byte yPinNumber )
   return bRetVal;
 }
 
-static void ReadInputs( void )
+static void ReadInputs()
 {
-  static bool bEncoderButtonBuff;
   static bool bFunctionButtonBuff;
+  static bool bEncoderButtonBuff;
 
-  static int pos = 0;
-  bool bEncoderButton  = ReadSe( PIN_ENCODER_BUTTON  );
+  static int iPositionBuff = 0;
   bool bFunctionButton = ReadSe( PIN_FUNCTION_BUTTON );
+  bool bEncoderButton  = ReadSe( PIN_ENCODER_BUTTON  );
   
-  if ( !bEncoderButtonBuff  && bEncoderButton  ) m_bEncoderButtonEdge  = true;
-  else                                           m_bEncoderButtonEdge  = false;
-  if ( !bFunctionButtonBuff && bFunctionButton ) m_bFunctionButtonEdge = true;
-  else                                           m_bFunctionButtonEdge = false;
+  if ( ( m_lActualTime - m_lLastEncoderEdge ) > DEBOUNCE_TIME )
+  {
+    if ( !bEncoderButtonBuff && bEncoderButton )
+    {
+      m_bEncoderButtonEdge = true;
+      m_lLastEncoderEdge   = m_lActualTime;
+    }
+  } 
+  else
+  {
+    m_bEncoderButtonEdge = false;
+  }
+
+  // Function Button
+  if ( !bFunctionButtonBuff && bFunctionButton )
+  {
+    m_bFunctionButtonEdge = true;
+  }
+  else
+  {
+    m_bFunctionButtonEdge = false;
+  } 
 
   encoder.tick();
-  int newPos = encoder.getPosition();
+  int iNewPosition = encoder.getPosition();
   
-  if (pos != newPos) 
+  if ( iPositionBuff != iNewPosition ) 
   {
     int iDirection = (int)encoder.getDirection();
     
     Serial.print("pos:");
-    Serial.print(newPos);
+    Serial.print(iNewPosition);
     Serial.print(" dir:");
     Serial.println( iDirection );
-    pos = newPos;
+    iPositionBuff = iNewPosition;
 
     if ( 1 == iDirection ) display_set_contrast( true,  false );
     else                   display_set_contrast( false, true  );
   } // if
 
   // Buffer zur Flankenerkennung
-  bEncoderButtonBuff  = bEncoderButton;
   bFunctionButtonBuff = bFunctionButton;
+  bEncoderButtonBuff  = bEncoderButton;
 }
 
 void loop() 
@@ -106,7 +129,18 @@ void loop()
   ircomm_exec ( m_lActualTime );
   display_exec ( ircomm_get_event( Left,   PressEvent ), 
                  ircomm_get_event( Right,  PressEvent ), 
-                 m_bEncoderButtonEdge,  // Enter Command
-                 ircomm_get_event( Yellow, PressEvent )
-               );                 // Switch active Pot command
+                 m_bEncoderButtonEdge // Switch active Pot command
+               );
+  
+  if ( ircomm_get_event( Source, PressEvent ) || ircomm_get_event( Green, PressEvent ) )display_set_brightness( true, false );
+
+  // Testen der Shift Toggle Funktion
+  if ( ircomm_get_event( Mute, PressEvent ) )
+  {
+    m_bToggleShift = !m_bToggleShift;
+    display_set_function_button( IDX_SHIFT, m_bToggleShift );
+  }
+
+  if ( ircomm_get_event( Menu, PressEvent     ) )Serial.println( "Menu Press received" );
+  if ( ircomm_get_event( Menu, LongPressEvent ) )Serial.println( "Menu Hold  received" );
 }

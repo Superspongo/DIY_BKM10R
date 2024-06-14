@@ -1,19 +1,25 @@
 //---------------------------
 // Display Defines
 //---------------------------
-#define CONTRAST_LCD_MIN (   1 ) 
-#define CONTRAST_LCD_MAX ( 100 ) // 125 is basically white already
-#define CONTRAST_LCD_DEF (  10 ) 
+#define CONTRAST_LCD_MIN    (   1 ) 
+#define CONTRAST_LCD_MAX    ( 100 ) // 125 is basically white already
+#define CONTRAST_LCD_DEF    (  10 ) 
+#define CONTRAST_LCD_STEP   (   1 )
 
-#define BOOT_LOGO_TIME  ( 3000 )  // Boot logo in ms
-#define BOOT_DONE       ( 0xFFFFFFFFU )
+#define BRIGHTNESS_LCD_MIN  (  50 ) 
+#define BRIGHTNESS_LCD_MAX  ( 250 ) 
+#define BRIGHTNESS_LCD_DEF  ( 200 ) 
+#define BRIGHTNESS_LCD_STEP (  50 )
 
-#define PAGE_NO_1       ( 0x01 )
-#define PAGE_NO_2       ( 0x02 )
-#define PAGE_NO_3       ( 0x03 )
+#define BOOT_LOGO_TIME      ( 3000 )  // Boot logo in ms
+#define BOOT_DONE           ( 0xFFFFFFFFU )
 
-#define ROW_NUM_BUTTONS    ( 2 )  // Number of Rows on the Button Page 
-#define COL_NUM_BUTTONS    ( 5 )  // Number of Colums on the Button Page
+#define PAGE_NO_1           ( 0x01 )
+#define PAGE_NO_2           ( 0x02 )
+#define PAGE_NO_3           ( 0x03 )
+
+#define ROW_NUM_BUTTONS     ( 2 )  // Number of Rows on the Button Page 
+#define COL_NUM_BUTTONS     ( 5 )  // Number of Colums on the Button Page
 
 #define BUTTON_ACTIVE_PIN        ( 12 )
 #define BUTTON_ENTER_PIN         (  8 )
@@ -112,5 +118,8 @@ enum eRowsPage1Cursor
 //--------------------
 
 void display_init( void );
-void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator, bool bEnter );
+void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator );
+bool display_set_function_button( byte yFunctionIdx, bool bValue );
+byte display_read_highlighted_function( void );
 void display_set_contrast( bool bUp, bool bDown );
+void display_set_brightness( bool bUp, bool bDown );

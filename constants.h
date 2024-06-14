@@ -3,6 +3,11 @@
 
 #define REMOTE_KEY_NUM                (  27 )
 
+// In order to add additional keys you need to increase the above define,
+// add a REMOTE_KEY_TY for the new key, expand the array "constants_atKeyArray"
+// and finally add the new key to the enum in the ir_comm header file.
+
+
 typedef struct
 {
   uint8_t  yAddress;
@@ -38,9 +43,10 @@ typedef enum
 
 
 // Angepasst an Sony Remote RM-887
+//                                    can be:         held   longprsd
 const REMOTE_KEY_TY remotePwr     = { 0x01, 0x15,  0, false, true,   0   }; // Power
 const REMOTE_KEY_TY remoteOkay    = { 0x01, 0x65,  1, false, true,   0   }; // OK
-const REMOTE_KEY_TY remoteMenu    = { 0x01, 0x60,  2, false, false,  0   }; // Menu
+const REMOTE_KEY_TY remoteMenu    = { 0x01, 0x60,  2, false, true,   0   }; // Menu
 const REMOTE_KEY_TY remoteUp      = { 0x01, 0x74,  3, true,  false,  100 }; // Hoch
 const REMOTE_KEY_TY remoteDown    = { 0x01, 0x75,  4, true,  false,  100 }; // Runter
 const REMOTE_KEY_TY remoteLeft    = { 0x01, 0x34,  5, true,  false,  100 }; // Links

@@ -15,8 +15,6 @@
 
 unsigned long lTimeLastReceived;
 
-// IRCOMM_RUNTIME_TY atLocalButtonArray[ IR_BUTTON_NUM ];
-
 uint8_t  ayButtonEvents[ IR_BUTTON_NUM ];
 uint16_t wFirstReceived;
 uint16_t wLastHoldEvent;
@@ -124,7 +122,7 @@ static void handleReceivedIRData( uint8_t yAddress, uint8_t yCommand, unsigned l
             }
           }
         } // end if ( tKeyStruct.bCanBeHeld )
-      } // end if ( atLocalButtonArray[ yArrayIndex ].bButtonIsHeld && bIsRepeat )
+      } // end if ( ayButtonEvents[ yArrayIndex ] & IRCOMM_HELD ) == IRCOMM_HELD )
     } // end if ( yArrayIndex < IR_BUTTON_NUM )
   } // end if ( GetKeyStruct( yAddress, yCommand, &tKeyStruct  ) )
 
@@ -133,43 +131,43 @@ static void handleReceivedIRData( uint8_t yAddress, uint8_t yCommand, unsigned l
 
 void ircomm_exec( unsigned long lActualTime )
 {
-    uint8_t yAddress;
-    uint8_t yCommand;
-    bool    bHandleData = false;
+  uint8_t yAddress;
+  uint8_t yCommand;
+  bool    bHandleData = false;
     
-    if ( IrReceiver.decode() ) 
-    {
-      if ( IrReceiver.decodedIRData.protocol != UNKNOWN ) 
-      { 
-        bHandleData = true;
-        //Serial.println( "Isch hab da was!" );  schneller debug
+  if ( IrReceiver.decode() ) 
+  {
+    if ( IrReceiver.decodedIRData.protocol != UNKNOWN ) 
+    { 
+      bHandleData = true;
+      //Serial.println( "Isch hab da was!" );  schneller debug
 
-        lTimeLastReceived = lActualTime;
-        // Wenn der Knopf gedrückt gehalten wird, dann bekommt der Receiver ca. alle 50ms einen neuen Wert
+      lTimeLastReceived = lActualTime;
+      // Wenn der Knopf gedrückt gehalten wird, dann bekommt der Receiver ca. alle 50ms einen neuen Wert
           
-        yAddress = IrReceiver.decodedIRData.address;
-        yCommand = IrReceiver.decodedIRData.command;
-      }
-        
-      /*
-       * !!!Important!!! Enable receiving of the next value,
-       * since receiving has stopped after the end of the current received data packet.
-       */
-      IrReceiver.resume(); // Enable receiving of the next value 
-
-      if ( bHandleData )
-      {
-        handleReceivedIRData( yAddress, yCommand, lActualTime );
-      }
+      yAddress = IrReceiver.decodedIRData.address;
+      yCommand = IrReceiver.decodedIRData.command;
     }
-    else
+        
+    /*
+     * !!!Important!!! Enable receiving of the next value,
+     * since receiving has stopped after the end of the current received data packet.
+     */
+    IrReceiver.resume(); // Enable receiving of the next value 
+
+    if ( bHandleData )
     {
-      if ( lActualTime - lTimeLastReceived >= IR_BUTTON_TIMEOUT )
-      {
-        // Reset all keys
-        ResetLocalRuntimeArray();
-      }
-    }    
+      handleReceivedIRData( yAddress, yCommand, lActualTime );
+    }
+  }
+  else
+  {
+    if ( lActualTime - lTimeLastReceived >= IR_BUTTON_TIMEOUT )
+    {
+      // Reset all keys
+      ResetLocalRuntimeArray();
+    }
+  }    
 }
 
 

@@ -6,6 +6,9 @@
 #include "defines.h"
 #include "display.h"
 
+#define LED_BACKGROUND  (  0 )
+#define LED_ENCODER_1   (  1 )
+#define LED_ENCODER_2   (  2 )
 
 // Hardware Solution. MUST SET SPI PINS!! See setup
  U8G2_ST7567_OS12864_F_4W_HW_SPI display(U8G2_R2, /* cs=*/PIN_LCD_EN, 
@@ -19,8 +22,22 @@
 Adafruit_NeoPixel pixels(3, PIN_LCD_RGB, NEO_GRB + NEO_KHZ800);
 
 // Global Variables
-unsigned long lStartTime;
-byte yContrast = 50;
+unsigned long g_lStartTime;
+byte g_yContrast   = CONTRAST_LCD_DEF;
+byte g_yBrightness = BRIGHTNESS_LCD_DEF;
+
+// Show the pot background colors
+bool g_bShowPotColors = true;
+
+                               //  Gr,  Rd,  Bl
+int iRed         = pixels.Color(    0, 100,   0);
+int iGreen       = pixels.Color(  100,   0,   0);
+int iBlue        = pixels.Color(    0,   0, 100);
+int iWhite       = pixels.Color(  100, 100, 100);
+
+int iGreenBg     = pixels.Color(  200,   0,   0);
+int iYellowBg    = pixels.Color(  193, 204,   0);
+int iWhiteBg     = pixels.Color(  200, 200, 200);
 
 byte ayCursorPositionP12[] = { PAGE1COL1, PAGE1ROW1CURSOR };
 byte ayCursorPositionP3[]  = { PAGE3COL1, PAGE3ROW1CURSOR };
@@ -70,7 +87,7 @@ const uint8_t *pButton14 = image_ButtonNotPressed_bits;
 // Initial Boot Logo
 static void displayBootLogo( void )
 {
-  lStartTime = millis();
+  g_lStartTime = millis();
   
   display.clearBuffer();					// clear the internal memory
 
@@ -84,66 +101,21 @@ static void displayBootLogo( void )
   display.sendBuffer();					// transfer internal memory to the display
 }
 
-
-static byte GetIndexOfHighlightedButton( void )
+static void setIndividualColor( bool bEncoderOrBackground, int iColor )
 {
-	byte yReturnVal = 0;
-	
-	if ( PAGE_NO_1 == yCurrentPage )
-	{
-    if ( PAGE1ROW1CURSOR == ayCursorPositionP12[1] )
-		{
-      // First Row
-		  if ( PAGE1COL1 == ayCursorPositionP12[0] ) yReturnVal = IDX_SHIFT;
-		  if ( PAGE1COL2 == ayCursorPositionP12[0] ) yReturnVal = IDX_F1;
-      if ( PAGE1COL3 == ayCursorPositionP12[0] ) yReturnVal = IDX_HDELAY;
-      if ( PAGE1COL4 == ayCursorPositionP12[0] ) yReturnVal = IDX_APT;
-      if ( PAGE1COL5 == ayCursorPositionP12[0] ) yReturnVal = IDX_MONO;
-    }
-		
-		if ( PAGE1ROW2CURSOR == ayCursorPositionP12[1] )
-		{
-      // Second Row
-			if ( PAGE1COL1 == ayCursorPositionP12[0] ) yReturnVal = IDX_UNDERSCAN;
-		  if ( PAGE1COL2 == ayCursorPositionP12[0] ) yReturnVal = IDX_F2;
-      if ( PAGE1COL3 == ayCursorPositionP12[0] ) yReturnVal = IDX_VDELAY;
-      if ( PAGE1COL4 == ayCursorPositionP12[0] ) yReturnVal = IDX_COMB;
-      if ( PAGE1COL5 == ayCursorPositionP12[0] ) yReturnVal = IDX_ADDRESS;
-		}
-	}
+  if ( bEncoderOrBackground )
+  {
+    // Set Background LED
+    pixels.setPixelColor( LED_BACKGROUND, iColor  );
+  }
+  else
+  {
+    // Set Encoder LEDs
+    pixels.setPixelColor( LED_ENCODER_1, iColor  );
+    pixels.setPixelColor( LED_ENCODER_2, iColor  );
+  }
 
-	if ( PAGE_NO_2 == yCurrentPage )
-	{
-    if ( PAGE1ROW1CURSOR == ayCursorPositionP12[1] )
-		{
-      // First Row
-		  if ( PAGE1COL1 == ayCursorPositionP12[0] ) yReturnVal = IDX_SHIFT;
-		  if ( PAGE1COL2 == ayCursorPositionP12[0] ) yReturnVal = IDX_F3;
-      if ( PAGE1COL3 == ayCursorPositionP12[0] ) yReturnVal = IDX_RED;
-      if ( PAGE1COL4 == ayCursorPositionP12[0] ) yReturnVal = IDX_GREEN;
-      if ( PAGE1COL5 == ayCursorPositionP12[0] ) yReturnVal = IDX_BLUE;
-    }
-		
-		if ( PAGE1ROW2CURSOR == ayCursorPositionP12[1] )
-		{
-      // Second Row
-			if ( PAGE1COL1 == ayCursorPositionP12[0] ) yReturnVal = IDX_SYNC;
-		  if ( PAGE1COL2 == ayCursorPositionP12[0] ) yReturnVal = IDX_F4;
-      if ( PAGE1COL3 == ayCursorPositionP12[0] ) yReturnVal = IDX_16BY9;
-      if ( PAGE1COL4 == ayCursorPositionP12[0] ) yReturnVal = IDX_BLUEONLY;
-      if ( PAGE1COL5 == ayCursorPositionP12[0] ) yReturnVal = IDX_SAFEAREA;
-		}
-	}
-	
-	if ( PAGE_NO_3 == yCurrentPage )
-	{
-	  if ( PAGE3COL1 == ayCursorPositionP3[0] ) yReturnVal = IDX_PHASE; 
-		if ( PAGE3COL2 == ayCursorPositionP3[0] ) yReturnVal = IDX_CHROMA;
-		if ( PAGE3COL3 == ayCursorPositionP3[0] ) yReturnVal = IDX_BRIGHTNESS;
-		if ( PAGE3COL4 == ayCursorPositionP3[0] ) yReturnVal = IDX_CONTRAST;
-	}
-
-	return yReturnVal;
+  pixels.show();
 }
 
 static void updateButtonBitfields( void )
@@ -285,9 +257,9 @@ static void displayInitialSetupPage( byte yPageNumber, bool bDrawButtons, bool b
     if ( yPageNumber == PAGE_NO_2 ) display.drawStr(3, 8, "Buttons");
 	  if ( yPageNumber == PAGE_NO_3 ) display.drawStr(3, 8, "Knobs"  );
 
-    if ( yPageNumber == PAGE_NO_1 ) display.drawStr(107, 8, "1/3");
-    if ( yPageNumber == PAGE_NO_2 ) display.drawStr(107, 8, "2/3");
-	  if ( yPageNumber == PAGE_NO_3 ) display.drawStr(107, 8, "3/3");
+    if ( yPageNumber == PAGE_NO_1 ) display.drawStr(107, 8, "1/2");  // Page 1 or 2 is determined by Shift
+    if ( yPageNumber == PAGE_NO_2 ) display.drawStr(107, 8, "1/2");  // Page 1 or 2 is determined by Shift
+	  if ( yPageNumber == PAGE_NO_3 ) display.drawStr(107, 8, "2/2");  
 
     display.setFont(u8g2_font_5x8_tr);
       
@@ -509,17 +481,18 @@ static void displayPage( byte yPageNumber )
 }
 
 
-void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator, bool bEnter ) 
+void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator ) 
 {
-  if ( lStartTime != BOOT_DONE )
+  if ( g_lStartTime != BOOT_DONE )
   {
-    if ( ( millis() - lStartTime ) < BOOT_LOGO_TIME )
+    if ( ( millis() - g_lStartTime ) < BOOT_LOGO_TIME )
     {
       return;
     }
     else
     {
-      lStartTime = BOOT_DONE;
+      g_lStartTime = BOOT_DONE;
+      setIndividualColor( true, iGreenBg );  // Display background
     }
   }
   
@@ -533,19 +506,7 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
   wButtonStatesP1Buff = wButtonStatesP1;
   wButtonStatesP2Buff = wButtonStatesP2;
 	wButtonStatesP3Buff = wButtonStatesP3;
-  
-  //---------------
-  // Enter button
-  //---------------
-	if ( bEnter )
-	{
-    // Depending on the position of the cursor,
-	  // a function is activated or deactivated
-		byte yIndex = GetIndexOfHighlightedButton();
-		
-		abButtonStates[ yIndex ] = !abButtonStates[ yIndex ];
-	}
-	
+
 	// Now the function bool-Array has to be passed on
 	// to the Bitfields of the three pages
 	updateButtonBitfields();
@@ -566,6 +527,9 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
   // move cursor
   //---------------
   
+  //------------------
+  // Moving right
+  //------------------
   if ( bMoveCursorRight )
   {
     // Rising Edge detected -> Move Cursor to the Right
@@ -588,16 +552,10 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
           ayCursorPositionP12[0] = PAGE1COL1;
           ayCursorPositionP12[1] = PAGE1ROW1CURSOR;
 
-          if ( PAGE_NO_1 == yCurrentPage )
-          {
-            yCurrentPage = PAGE_NO_2;
-          }
-          else if ( PAGE_NO_2 == yCurrentPage )
-          {
-            yCurrentPage = PAGE_NO_3;
-            ayCursorPositionP3[0] = PAGE3COL1;
-          }
-          else{}
+          // Always jump to Page 3
+          // Page 1 or 2 is dependent on Shift Button
+          yCurrentPage = PAGE_NO_3;
+          ayCursorPositionP3[0] = PAGE3COL1;
         }
         else
         {
@@ -616,7 +574,20 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
       // Special: Cursor is at the end
       if ( PAGE3COL4 == ayCursorPositionP3[0] )
       {
-        yCurrentPage = PAGE_NO_1;
+        // Setting up Cursor pos for coming page 1/2
+        ayCursorPositionP12[0] = PAGE1COL1;
+        ayCursorPositionP12[1] = PAGE1ROW1CURSOR;
+        
+        if ( abButtonStates[ IDX_SHIFT ] )
+        {
+          // Shifted buttons
+          yCurrentPage = PAGE_NO_2;
+        }
+        else
+        {
+          // Non-shifted buttons
+          yCurrentPage = PAGE_NO_1;
+        }
       }
       else
       {
@@ -628,7 +599,10 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
     {}
   }
 
-	if ( bMoveCursorLeft )
+	//------------------
+  // Moving left
+  //------------------
+  if ( bMoveCursorLeft )
   {
     // Rising Edge detected -> Move Cursor to the Left
     if ( ( PAGE_NO_1 == yCurrentPage ) || ( PAGE_NO_2 == yCurrentPage ) )
@@ -650,16 +624,9 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
           ayCursorPositionP12[0] = PAGE1COL5;
           ayCursorPositionP12[1] = PAGE1ROW2CURSOR;
 
-          if ( PAGE_NO_2 == yCurrentPage )
-          {
-            yCurrentPage = PAGE_NO_1;
-          }
-          else if ( PAGE_NO_1 == yCurrentPage )
-          {
-            yCurrentPage = PAGE_NO_3;
-            ayCursorPositionP3[0] = PAGE3COL4;
-          }
-          else{}
+          // Always jumps to page 3, p1 or p2 is determined by SHIFT
+          yCurrentPage = PAGE_NO_3;
+          ayCursorPositionP3[0] = PAGE3COL4;
         }
         else
         {
@@ -678,9 +645,20 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
       // Special: Cursor is at the end
       if ( PAGE3COL1 == ayCursorPositionP3[0] )
       {
+        // Setting up Cursor pos for coming page 1/2
         ayCursorPositionP12[0] = PAGE1COL5;
         ayCursorPositionP12[1] = PAGE1ROW2CURSOR;
-				yCurrentPage = PAGE_NO_2;
+        
+        if ( abButtonStates[ IDX_SHIFT ] )
+        {
+          // Shifted buttons
+          yCurrentPage = PAGE_NO_2;
+        }
+        else
+        {
+          // Non-shifted buttons
+          yCurrentPage = PAGE_NO_1;
+        }
       }
       else
       {
@@ -710,6 +688,14 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
 		{
 		  bDrawActiveIndicator = true;
 		}
+
+    if ( g_bShowPotColors )
+    {
+      if ( PAGE3COL1 == yActiveIndicatorPosition ) setIndividualColor( false, iRed   );
+      if ( PAGE3COL2 == yActiveIndicatorPosition ) setIndividualColor( false, iGreen );
+      if ( PAGE3COL3 == yActiveIndicatorPosition ) setIndividualColor( false, iBlue  );
+      if ( PAGE3COL4 == yActiveIndicatorPosition ) setIndividualColor( false, iWhite );
+    }
 	}
 
   //---------------------
@@ -720,6 +706,190 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
 //-------------------
 // Exported functions
 //-------------------
+
+void display_set_contrast( bool bUp, bool bDown )
+{
+  if ( bUp || bDown )
+  {
+    if ( bUp )
+    {
+      if ( g_yContrast <= ( CONTRAST_LCD_MAX - CONTRAST_LCD_STEP ) )
+      {
+        g_yContrast += CONTRAST_LCD_STEP;
+      }
+      else 
+      {
+        g_yContrast = CONTRAST_LCD_MAX;
+      }
+    } 
+
+    if ( bDown )
+    {
+      if ( g_yContrast >= ( CONTRAST_LCD_MIN + CONTRAST_LCD_STEP ) )
+      {
+        g_yContrast -= CONTRAST_LCD_STEP;
+      }
+      else 
+      {
+        g_yContrast = CONTRAST_LCD_MIN;
+      }
+    } 
+
+    Serial.print( "Contrast: ");
+    Serial.println( g_yContrast );
+    display.setContrast( g_yContrast );
+  }
+}
+
+void display_set_brightness( bool bUp, bool bDown )
+{
+  if ( bUp )
+  {
+    if ( g_yBrightness <= ( BRIGHTNESS_LCD_MAX - BRIGHTNESS_LCD_STEP ) )
+    {
+      g_yBrightness += BRIGHTNESS_LCD_STEP;
+    }
+    else if ( g_yBrightness == BRIGHTNESS_LCD_MAX )
+    {
+      g_yBrightness = BRIGHTNESS_LCD_MIN;
+    }
+    else
+    {
+      g_yBrightness = BRIGHTNESS_LCD_MAX;
+    }
+  } 
+
+  if ( bDown )
+  {
+    if ( g_yBrightness >= ( BRIGHTNESS_LCD_MIN + BRIGHTNESS_LCD_STEP ) )
+    {
+      g_yBrightness -= BRIGHTNESS_LCD_STEP;
+    }
+    else if ( g_yBrightness == BRIGHTNESS_LCD_MIN )
+    {
+      g_yBrightness = BRIGHTNESS_LCD_MAX;
+    }
+    else
+    {
+      g_yBrightness = BRIGHTNESS_LCD_MIN;
+    }
+  } 
+
+  if ( bUp || bDown )
+  {
+    Serial.print( "Brightness: ");
+    Serial.println( g_yBrightness );
+    pixels.setBrightness( g_yBrightness );
+    pixels.show();
+  }
+}
+
+byte display_read_highlighted_function( void )
+{
+  // give the current highlighted function to
+  // send out the OpCode to the monitor
+	byte yReturnVal = 0;
+	
+	if ( PAGE_NO_1 == yCurrentPage )
+	{
+    if ( PAGE1ROW1CURSOR == ayCursorPositionP12[1] )
+		{
+      // First Row
+		  if ( PAGE1COL1 == ayCursorPositionP12[0] ) yReturnVal = IDX_SHIFT;
+		  if ( PAGE1COL2 == ayCursorPositionP12[0] ) yReturnVal = IDX_F1;
+      if ( PAGE1COL3 == ayCursorPositionP12[0] ) yReturnVal = IDX_HDELAY;
+      if ( PAGE1COL4 == ayCursorPositionP12[0] ) yReturnVal = IDX_APT;
+      if ( PAGE1COL5 == ayCursorPositionP12[0] ) yReturnVal = IDX_MONO;
+    }
+		
+		if ( PAGE1ROW2CURSOR == ayCursorPositionP12[1] )
+		{
+      // Second Row
+			if ( PAGE1COL1 == ayCursorPositionP12[0] ) yReturnVal = IDX_UNDERSCAN;
+		  if ( PAGE1COL2 == ayCursorPositionP12[0] ) yReturnVal = IDX_F2;
+      if ( PAGE1COL3 == ayCursorPositionP12[0] ) yReturnVal = IDX_VDELAY;
+      if ( PAGE1COL4 == ayCursorPositionP12[0] ) yReturnVal = IDX_COMB;
+      if ( PAGE1COL5 == ayCursorPositionP12[0] ) yReturnVal = IDX_ADDRESS;
+		}
+	}
+
+	if ( PAGE_NO_2 == yCurrentPage )
+	{
+    if ( PAGE1ROW1CURSOR == ayCursorPositionP12[1] )
+		{
+      // First Row
+		  if ( PAGE1COL1 == ayCursorPositionP12[0] ) yReturnVal = IDX_SHIFT;
+		  if ( PAGE1COL2 == ayCursorPositionP12[0] ) yReturnVal = IDX_F3;
+      if ( PAGE1COL3 == ayCursorPositionP12[0] ) yReturnVal = IDX_RED;
+      if ( PAGE1COL4 == ayCursorPositionP12[0] ) yReturnVal = IDX_GREEN;
+      if ( PAGE1COL5 == ayCursorPositionP12[0] ) yReturnVal = IDX_BLUE;
+    }
+		
+		if ( PAGE1ROW2CURSOR == ayCursorPositionP12[1] )
+		{
+      // Second Row
+			if ( PAGE1COL1 == ayCursorPositionP12[0] ) yReturnVal = IDX_SYNC;
+		  if ( PAGE1COL2 == ayCursorPositionP12[0] ) yReturnVal = IDX_F4;
+      if ( PAGE1COL3 == ayCursorPositionP12[0] ) yReturnVal = IDX_16BY9;
+      if ( PAGE1COL4 == ayCursorPositionP12[0] ) yReturnVal = IDX_BLUEONLY;
+      if ( PAGE1COL5 == ayCursorPositionP12[0] ) yReturnVal = IDX_SAFEAREA;
+		}
+	}
+	
+	if ( PAGE_NO_3 == yCurrentPage )
+	{
+	  if ( PAGE3COL1 == ayCursorPositionP3[0] ) yReturnVal = IDX_PHASE; 
+		if ( PAGE3COL2 == ayCursorPositionP3[0] ) yReturnVal = IDX_CHROMA;
+		if ( PAGE3COL3 == ayCursorPositionP3[0] ) yReturnVal = IDX_BRIGHTNESS;
+		if ( PAGE3COL4 == ayCursorPositionP3[0] ) yReturnVal = IDX_CONTRAST;
+	}
+
+	return yReturnVal;
+}
+
+bool display_set_function_button( byte yFunctionIdx, bool bValue )
+{
+  bool bRetVal = false;
+
+  // Set Button state according to the monitor's response
+  if ( yFunctionIdx < BUTTON_NUM )
+  {
+    // valid Index
+    abButtonStates[ yFunctionIdx ] = bValue;
+    bRetVal = true;
+
+    // Special: If Shift is toggled, the page has to switch
+    if ( IDX_SHIFT == yFunctionIdx )
+    {
+      if ( abButtonStates[ yFunctionIdx ] )
+      {
+        // Shift Mode - Yellow Backgound
+        setIndividualColor( true, iYellowBg );
+        
+        if ( ( yCurrentPage == PAGE_NO_1 ) || ( yCurrentPage == PAGE_NO_2 ) )
+        {
+          // Shift was false and is now true --> change to Page 2
+          yCurrentPage = PAGE_NO_2;
+          Serial.println( "Should now be Page 2" );
+        }
+      }
+      else
+      {
+        // normal Mode - Green Backgound
+        setIndividualColor( true, iGreenBg );
+        
+        if ( ( yCurrentPage == PAGE_NO_1 ) || ( yCurrentPage == PAGE_NO_2 ) )
+        {
+          // Shift was false and is now true --> change to Page 1
+          yCurrentPage = PAGE_NO_1;
+          Serial.println( "Should now be Page 1" );
+        }
+      }
+    }
+  }
+
+  return bRetVal;
+}
 
 void display_init( void )
 {
@@ -736,40 +906,12 @@ void display_init( void )
 
   // Hintergrundbeleuchung
   pixels.begin();
-  pixels.setPixelColor(0, pixels.Color(50, 0, 0));
-  pixels.setPixelColor(1, pixels.Color(0, 50, 0));
-  pixels.setPixelColor(2, pixels.Color(0, 0, 50));
-  pixels.setBrightness( 250 );
+  pixels.setPixelColor( LED_BACKGROUND, iWhiteBg );  // Display background
+  if ( g_bShowPotColors )
+  {
+    pixels.setPixelColor( LED_ENCODER_1,  iRed     );  // Encoder Pot LED 1
+    pixels.setPixelColor( LED_ENCODER_2,  iRed     );  // Encoder Pot LED 2
+  }
+  pixels.setBrightness( g_yBrightness );
   pixels.show();
-}
-
-void display_set_contrast( bool bUp, bool bDown )
-{
-  if ( bUp )
-  {
-    if ( yContrast < CONTRAST_LCD_MAX )
-    {
-      yContrast+=1;
-    }
-    else 
-    {
-      yContrast = CONTRAST_LCD_MAX;
-    }
-  } 
-
-  if ( bDown )
-  {
-    if ( yContrast > CONTRAST_LCD_MIN )
-    {
-      yContrast-=1;
-    }
-    else 
-    {
-      yContrast = CONTRAST_LCD_MIN;
-    }
-  } 
-
-  Serial.print( "Contrast: ");
-  Serial.println( yContrast );
-  display.setContrast( yContrast );
 }
