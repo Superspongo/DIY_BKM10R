@@ -847,6 +847,18 @@ byte display_read_highlighted_function( void )
 	return yReturnVal;
 }
 
+byte display_read_active_encoder( void )
+{
+  byte yRetVal = IDX_PHASE;
+  
+  if ( PAGE3COL1 == yActiveIndicatorPosition ) yRetVal = IDX_PHASE;
+  if ( PAGE3COL2 == yActiveIndicatorPosition ) yRetVal = IDX_CHROMA;
+  if ( PAGE3COL3 == yActiveIndicatorPosition ) yRetVal = IDX_BRIGHTNESS;
+  if ( PAGE3COL4 == yActiveIndicatorPosition ) yRetVal = IDX_CONTRAST;
+
+  return yRetVal;
+}
+
 bool display_set_function_button( byte yFunctionIdx, bool bValue )
 {
   bool bRetVal = false;

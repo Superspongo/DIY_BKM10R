@@ -51,5 +51,6 @@ typedef enum
 void ircomm_init( void );
 void ircomm_exec ( unsigned long lActualTime );
 bool ircomm_get_event ( IRCOMM_BUTTON eButton, IRCOMM_FUNC eFunction );
+bool ircomm_get_press ( IRCOMM_BUTTON eButton );
 
 #endif

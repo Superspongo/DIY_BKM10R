@@ -198,3 +198,8 @@ bool ircomm_get_event ( IRCOMM_BUTTON eButton, IRCOMM_FUNC eFunction )
 
   return bRetval;
 }
+
+bool ircomm_get_press ( IRCOMM_BUTTON eButton )
+{
+  return ircomm_get_event( eButton, PressEvent );
+}

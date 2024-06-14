@@ -8,9 +8,9 @@
 // 
 
 #include "defines.h"
-#include "RotaryEncoder.h"
 #include "display.h"
 #include "ircomm.hpp"
+#include "bkmcomm.hpp"
 
 #define DEBOUNCE_TIME (   300 )    // in Milliseconds
 
@@ -26,9 +26,6 @@ unsigned long m_lLastEncoderEdge = 0;    // the last time the output pin was tog
 
 static bool m_bToggleShift = false;
 
-// Setup a RotaryEncoder with 2 steps per latch for the 2 signal input pins:
-RotaryEncoder encoder( PIN_ENCODER_2, PIN_ENCODER_1, RotaryEncoder::LatchMode::TWO03 );
-
 void setup() 
 {
   // Serial1 soll auf den Pins GPIO 0 und 1 ausgegeben werden
@@ -36,16 +33,8 @@ void setup()
   // unterstützt das.
   
   // Encoder Buttons
-  pinMode( PIN_ENCODER_1, INPUT_PULLUP );        // Encoder Eingang 1
-  pinMode( PIN_ENCODER_2, INPUT_PULLUP );        // Encoder Eingang 2
   pinMode( PIN_ENCODER_BUTTON,  INPUT_PULLUP );  // Drehencoder Eindrücken
   pinMode( PIN_FUNCTION_BUTTON, INPUT_PULLUP );  // "Reset" Taster
-
-  // RS422 Kommunikation zum Monitor
-  // Alternative Pins benutzen
-  Serial1.setTX( PIN_RS485_TX );
-  Serial1.setRX( PIN_RS485_RX );
-  Serial1.begin( BAUDRATE_RS422_38K4 );   
 
   // Debug USB Seriell Kommunikation  
   Serial.begin( 115200 );
@@ -55,6 +44,9 @@ void setup()
 
   // Remote control
   ircomm_init();
+
+  // monitor communication
+  bkmcomm_init();
 }
 
 // Invertierendes Lesen, alle Eingänge schalten auf Low
@@ -97,23 +89,6 @@ static void ReadInputs()
     m_bFunctionButtonEdge = false;
   } 
 
-  encoder.tick();
-  int iNewPosition = encoder.getPosition();
-  
-  if ( iPositionBuff != iNewPosition ) 
-  {
-    int iDirection = (int)encoder.getDirection();
-    
-    Serial.print("pos:");
-    Serial.print(iNewPosition);
-    Serial.print(" dir:");
-    Serial.println( iDirection );
-    iPositionBuff = iNewPosition;
-
-    if ( 1 == iDirection ) display_set_contrast( true,  false );
-    else                   display_set_contrast( false, true  );
-  } // if
-
   // Buffer zur Flankenerkennung
   bFunctionButtonBuff = bFunctionButton;
   bEncoderButtonBuff  = bEncoderButton;
@@ -127,6 +102,9 @@ void loop()
   ReadInputs();
   
   ircomm_exec ( m_lActualTime );
+  
+  bkmcomm_exec();
+  
   display_exec ( ircomm_get_event( Left,   PressEvent ), 
                  ircomm_get_event( Right,  PressEvent ), 
                  m_bEncoderButtonEdge // Switch active Pot command

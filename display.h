@@ -121,5 +121,6 @@ void display_init( void );
 void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActiveIndicator );
 bool display_set_function_button( byte yFunctionIdx, bool bValue );
 byte display_read_highlighted_function( void );
+byte display_read_active_encoder( void );
 void display_set_contrast( bool bUp, bool bDown );
 void display_set_brightness( bool bUp, bool bDown );
