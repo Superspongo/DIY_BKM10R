@@ -168,28 +168,24 @@ void reportEncoder(uint8_t encoder, int8_t value)
   // If it was smaller, |1| is transmitted.
   int8_t ticks = 0;
     
-  if(value < 0) 
+  if( value < 0 ) 
   {
-    if(value >= -3) 
-    {
-      ticks = -1;
-    } 
-    else 
-    {
-      ticks = -127;
-    }
+    if( value >= -3 )              ticks = -1;     // small step
+    else if (    ( value <  -3 ) 
+              && ( value >= -6 ) ) ticks = -50;    // medium step
+    else                           ticks = -127;   // big step
   } 
   else 
   {
-    if(value <= 3) 
-    {
-      ticks = 1; 
-    } 
-    else 
-    {
-      ticks = 127;
-    }
+    if( value <= 3 )               ticks = 1;      // small step
+    else if (    ( value >   3 ) 
+              && ( value <=  6 ) ) ticks = 50;     // medium step
+    else                           ticks = 127;    // big step
   }
+
+  // ## DEBUG
+  // Serial.print( "Reported value to monitor: ");
+  // Serial.println( ticks );
   
   if(currentBank != CB_ENCODERS) 
   {
@@ -233,6 +229,7 @@ void bkmcomm_init() {
 
   // "Flush" any garbage
   while (Serial1.available()) Serial1.read();
+  
   wakeup_monitor();
 }
 
@@ -448,10 +445,18 @@ void bkmcomm_exec( void ) {
 
   // Encoder updates
   encoder.tick();
+
+  // Get encoder index to "bkmcomm index"
+  yActiveEncoder -= IDX_PHASE;
   encoders[ yActiveEncoder ].m_value = encoder.getPosition();
-  
+
   if(millis() >= nextEncoderCheck_ms) {
     checkEncoders();
     nextEncoderCheck_ms += ENCODER_UPDATE_DELTA_MS;
   }
+
+  
+  // Implementing a Menu Mode where OK Button is disabled for pressing a button
+  if ( ircomm_get_event( Menu, PressEvent     ) )Serial.println( "Menu Press received" );
+  if ( ircomm_get_event( Menu, LongPressEvent ) )Serial.println( "Menu Hold  received" );
 }

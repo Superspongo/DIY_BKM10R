@@ -21,10 +21,11 @@
 bool g_bEncoderButtonEdge  = false;
 bool g_bFunctionButtonEdge = false;
 
-bool g_bToggleEncoderLight = false;
+bool g_bToggleEncoderLight = true;
 
 unsigned long g_lActualTime;
-unsigned long g_lLastEncoderEdge = 0;    // the last time the output pin was toggled
+unsigned long g_lLastEncoderEdge  = 0;    // the last time the output pin was toggled
+unsigned long g_lLastFunctionEdge = 0;    // the last time the output pin was toggled
 
 void setup() 
 {
@@ -57,6 +58,22 @@ static bool ReadSe( byte yPinNumber )
   return bRetVal;
 }
 
+static void debouncedEdge( unsigned long *plLastEdge, bool *pbBuffer, bool *pbIn, bool *bEdge )
+{
+  if ( ( g_lActualTime - *plLastEdge ) > DEBOUNCE_TIME )
+  {
+    if ( !*pbBuffer && *pbIn )
+    {
+      *bEdge = true;
+      *plLastEdge   = g_lActualTime;
+    }
+  } 
+  else
+  {
+    *bEdge = false;
+  }
+}
+
 static void ReadInputs()
 {
   static bool bFunctionButtonBuff;
@@ -66,33 +83,8 @@ static void ReadInputs()
   bool bFunctionButton = ReadSe( PIN_FUNCTION_BUTTON );
   bool bEncoderButton  = ReadSe( PIN_ENCODER_BUTTON  );
   
-  if ( ( g_lActualTime - g_lLastEncoderEdge ) > DEBOUNCE_TIME )
-  {
-    if ( !bEncoderButtonBuff && bEncoderButton )
-    {
-      g_bEncoderButtonEdge = true;
-      g_lLastEncoderEdge   = g_lActualTime;
-    }
-  } 
-  else
-  {
-    g_bEncoderButtonEdge = false;
-  }
-
-  // Function Button
-  if ( !bFunctionButtonBuff && bFunctionButton )
-  {
-    g_bFunctionButtonEdge = true;
-    g_bToggleEncoderLight = !g_bToggleEncoderLight;
-
-    Serial.println( "Toggling backlight" );
-    Serial.println( "Toggling backlight" );
-    display_encoder_backlight( g_bToggleEncoderLight );
-  }
-  else
-  {
-    g_bFunctionButtonEdge = false;
-  } 
+  debouncedEdge( &g_lLastEncoderEdge,  &bEncoderButtonBuff,  &bEncoderButton,  &g_bEncoderButtonEdge  );
+  debouncedEdge( &g_lLastFunctionEdge, &bFunctionButtonBuff, &bFunctionButton, &g_bFunctionButtonEdge );
 
   // Buffer zur Flankenerkennung
   bFunctionButtonBuff = bFunctionButton;
@@ -115,8 +107,14 @@ void loop()
                  g_bEncoderButtonEdge // Switch active Pot command
                );
   
-  if ( ircomm_get_event( Source, PressEvent ) || ircomm_get_event( Green, PressEvent ) )display_set_brightness( true, false );
+  // Function Button toggles encoder backlight
+  if ( g_bFunctionButtonEdge )
+  {
+    g_bToggleEncoderLight = !g_bToggleEncoderLight;
 
-  if ( ircomm_get_event( Menu, PressEvent     ) )Serial.println( "Menu Press received" );
-  if ( ircomm_get_event( Menu, LongPressEvent ) )Serial.println( "Menu Hold  received" );
+    Serial.println( "Toggling backlight" );
+    display_encoder_backlight( g_bToggleEncoderLight );
+  }
+  
+  if ( ircomm_get_event( Source, PressEvent ) || ircomm_get_event( Green, PressEvent ) )display_set_brightness( true, false );
 }

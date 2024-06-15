@@ -259,7 +259,7 @@ static void displayInitialSetupPage( byte yPageNumber, bool bDrawButtons, bool b
     
 	  if ( yPageNumber == PAGE_NO_1 ) display.drawStr(3, 8, "Buttons");
     if ( yPageNumber == PAGE_NO_2 ) display.drawStr(3, 8, "Buttons");
-	  if ( yPageNumber == PAGE_NO_3 ) display.drawStr(3, 8, "Knobs"  );
+	  if ( yPageNumber == PAGE_NO_3 ) display.drawStr(3, 8, "Encoders" );
 
     if ( yPageNumber == PAGE_NO_1 ) display.drawStr(107, 8, "1/2");  // Page 1 or 2 is determined by Shift
     if ( yPageNumber == PAGE_NO_2 ) display.drawStr(107, 8, "1/2");  // Page 1 or 2 is determined by Shift
