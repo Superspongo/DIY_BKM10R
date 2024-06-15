@@ -44,10 +44,11 @@ const uint8_t BANK_LED[]      = { 0x4C, 0x45 }; // ILE - LEDS
 const uint8_t BANK_CC[]       = { 0x43, 0x43 }; // ICC - Unknown
 const uint8_t BANK_MT[]       = { 0x4D, 0x54 }; // IMT - Unknown
 
-const uint8_t ENCODER_PHASE     = 0x00;
-const uint8_t ENCODER_CHROMA    = 0x01;
-const uint8_t ENCODER_BRIGHT    = 0x02;
-const uint8_t ENCODER_CONTRAST  = 0x03;
+// These codes are sent to the monitor
+const uint8_t ENCODER_PHASE     = 0x03;
+const uint8_t ENCODER_CHROMA    = 0x02;
+const uint8_t ENCODER_BRIGHT    = 0x01;
+const uint8_t ENCODER_CONTRAST  = 0x00;
 
 const uint8_t POWER_ON[] = {KEY,0x33,0x31};
 
