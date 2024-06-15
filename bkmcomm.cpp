@@ -72,10 +72,16 @@ void serialEvent()
     int received = Serial1.readBytes(buf,3);
     if(received != 3) return;    // Invalid command length
     
+    // ## DEBUG
+    //Serial.print("Received ");
+
+    // Which group was received?
     switch( buf[0] ) 
     {
       case KEY: 
       {
+        // ## DEBUG
+        //Serial.println("Key message!");
         // == LEDs ==
         // 
         // LEDs use the same groups and masks as keypresses. Every time the CRT needs to
@@ -110,6 +116,9 @@ void serialEvent()
       break;
       case BANK: 
       {
+        // ## DEBUG
+        // Serial.println("Bank message!");
+        
         // Monitor forces a bank switch
         if(buf[1] == BANK_LED[0] &&
            buf[2] == BANK_LED[1])
@@ -388,6 +397,9 @@ void bkmcomm_exec( void ) {
   bool bUp      = ircomm_get_press( Up     );
   bool bMenu    = ircomm_get_press( Menu   );
   bool bPower   = ircomm_get_press( Power  );
+  
+  // Check Monitor's response
+  serialEvent();
   
   // Display-highlightable buttons
   if ( bClicked )
