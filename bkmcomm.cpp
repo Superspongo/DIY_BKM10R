@@ -55,6 +55,7 @@ int ledState = 0;
 int prev_ledState = ledState;
 
 // LED States
+// See protocol description to learn about key groups
 uint8_t group2leds = 0x0;
 uint8_t group3leds = 0x0;
 uint8_t group4leds = 0x0;
@@ -68,13 +69,25 @@ void serialEvent()
   
   if(Serial1.available()) 
   {
-    int rcvd = Serial1.readBytes(buf,3);
-    if(rcvd != 3) return;    // Invalid command length
+    int received = Serial1.readBytes(buf,3);
+    if(received != 3) return;    // Invalid command length
     
     switch( buf[0] ) 
     {
       case KEY: 
       {
+        // == LEDs ==
+        // 
+        // LEDs use the same groups and masks as keypresses. Every time the CRT needs to
+        // change the lights, it changes to the LED bank:
+        // 
+        // 0x49 0x4c 0x45
+        // 
+        // then sends changed switch groups:
+        // 
+        // 0x44 <group> <mask>
+        // 
+        // where <mask> is all of the active LED masks OR'd together.
         uint8_t* leds = NULL;
         switch(buf[1]) 
         {
@@ -123,7 +136,7 @@ void serialEvent()
   }
 }
 
-void update_monitor() {
+void wakeup_monitor() {
   Serial1.write(BANK);
   Serial1.write(BANK_CC,2);
   Serial1.write(BANK);
@@ -220,7 +233,7 @@ void bkmcomm_init() {
 
   // "Flush" any garbage
   while (Serial1.available()) Serial1.read();
-  update_monitor();
+  wakeup_monitor();
 }
 
 void pushButton(Button_t& b) {
@@ -234,89 +247,136 @@ void pushButton(Button_t& b) {
   Serial1.write(b.id);          
 };
 
-void updateLEDStates() {
+void updateLEDStates() 
+{
   if(group2leds & B_PHASE_MANUAL.id) {
     ledState |= LED_PHASE_MANUAL;
+    display_set_function_button( IDX_PHASE, true );
   } else {
     ledState &= ~LED_PHASE_MANUAL;
+    display_set_function_button( IDX_PHASE, false );
   }
 
   if(group2leds & B_CHROMA_MANUAL.id) {
     ledState |= LED_CHROMA_MANUAL;
+    display_set_function_button( IDX_CHROMA, true );
   } else {
     ledState &= ~LED_CHROMA_MANUAL;
+    display_set_function_button( IDX_CHROMA, false );
   }
 
   if(group2leds & B_BRIGHT_MANUAL.id) {
     ledState |= LED_BRIGHT_MANUAL;
+    display_set_function_button( IDX_BRIGHTNESS, true );
   } else {
     ledState &= ~LED_BRIGHT_MANUAL;
+    display_set_function_button( IDX_BRIGHTNESS, false );
   }
 
   if(group2leds & B_CONTRAST_MANUAL.id) {
     ledState |= LED_CONTRAST_MANUAL;
+    display_set_function_button( IDX_CONTRAST, true );
   } else {
     ledState &= ~LED_CONTRAST_MANUAL;
+    display_set_function_button( IDX_CONTRAST, false );
   }
 
   if(group3leds & B_SHIFT.id) {
     ledState |= LED_SHIFT;
+    display_set_function_button( IDX_SHIFT, true );
   } else {
     ledState &= ~LED_SHIFT;
+    display_set_function_button( IDX_SHIFT, false );
   }
 
   if(group3leds & B_UNDERSCAN_16_9.id) {
     ledState |= LED_UNDERSCAN_16_9;
+    display_set_function_button( IDX_UNDERSCAN, true );
+    display_set_function_button( IDX_16BY9,     true );
   } else {
     ledState &= ~LED_UNDERSCAN_16_9;
+    display_set_function_button( IDX_UNDERSCAN, false );
+    display_set_function_button( IDX_16BY9,     false );
   }
 
   if(group3leds & B_HORIZ_SYNC.id) {
     ledState |= LED_HORIZ_SYNC;
+    display_set_function_button( IDX_HDELAY, true );
+    display_set_function_button( IDX_SYNC,   true );
   } else {
     ledState &= ~LED_HORIZ_SYNC;
+    display_set_function_button( IDX_HDELAY, false );
+    display_set_function_button( IDX_SYNC,   false );    
   }
 
   if(group3leds & B_VERT_BLUE_ONLY.id) {
     ledState |= LED_VERT_BLUE_ONLY;
+    display_set_function_button( IDX_VDELAY,   true );
+    display_set_function_button( IDX_BLUEONLY, true );
   } else {
     ledState &= ~LED_VERT_BLUE_ONLY;
+    display_set_function_button( IDX_VDELAY,   false );
+    display_set_function_button( IDX_BLUEONLY, false );    
   }
 
   if(group3leds & B_MONO_R.id) {
     ledState |= LED_MONO_R;
+    display_set_function_button( IDX_MONO, true );
+    display_set_function_button( IDX_RED,  true );
   } else {
     ledState &= ~LED_MONO_R;
+    display_set_function_button( IDX_MONO, false );
+    display_set_function_button( IDX_RED,  false );
   }
 
   if(group4leds & B_APT_G.id) {
     ledState |= LED_APT_G;
+    display_set_function_button( IDX_APT,   true );
+    display_set_function_button( IDX_GREEN, true );
   } else {
     ledState &= ~LED_APT_G;
+    display_set_function_button( IDX_APT,   false );
+    display_set_function_button( IDX_GREEN, false );    
   }
 
   if(group4leds & B_COMB_B.id) {
     ledState |= LED_COMB_B;
+    display_set_function_button( IDX_COMB, true );
+    display_set_function_button( IDX_BLUE, true );    
   } else {
     ledState &= ~LED_COMB_B;
+    display_set_function_button( IDX_COMB, false );
+    display_set_function_button( IDX_BLUE, false );        
   }
 
   if(group4leds & B_F1_F3.id) {
     ledState |= LED_F1_F3;
+    display_set_function_button( IDX_F1, true );
+    display_set_function_button( IDX_F3, true );        
   } else {
     ledState &= ~LED_F1_F3;
+    display_set_function_button( IDX_F1, false );
+    display_set_function_button( IDX_F3, false );    
   }
 
   if(group4leds & B_F2_F4.id) {
     ledState |= LED_F2_F4;
+    display_set_function_button( IDX_F2, true );
+    display_set_function_button( IDX_F4, true );            
   } else {
     ledState &= ~LED_F2_F4;
+    display_set_function_button( IDX_F2, false );
+    display_set_function_button( IDX_F4, false );        
   }
 
   if(group4leds & B_SAFE_AREA_ADDR.id) {
     ledState |= LED_ADDR_SAFE_AREA;
+    display_set_function_button( IDX_ADDRESS,  true );
+    display_set_function_button( IDX_SAFEAREA, true );        
   } else {
     ledState &= ~LED_ADDR_SAFE_AREA;
+    display_set_function_button( IDX_ADDRESS,  false );
+    display_set_function_button( IDX_SAFEAREA, false );            
   }
 }
 
@@ -385,14 +445,10 @@ void bkmcomm_exec( void ) {
   }
 
   updateLEDStates();
-  if(ledState != prev_ledState) {
-    prev_ledState = ledState;
-  }
 
   // Encoder updates
-  
   encoder.tick();
-  encoders[ yActiveEncoder].m_value = encoder.getPosition();
+  encoders[ yActiveEncoder ].m_value = encoder.getPosition();
   
   if(millis() >= nextEncoderCheck_ms) {
     checkEncoders();

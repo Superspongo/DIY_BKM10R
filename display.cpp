@@ -10,6 +10,9 @@
 #define LED_ENCODER_1   (  1 )
 #define LED_ENCODER_2   (  2 )
 
+#define DISPLAY_BACKLIGHT   (  true )
+#define ENCODER_BACKLIGHT   ( false )
+
 // Hardware Solution. MUST SET SPI PINS!! See setup
  U8G2_ST7567_OS12864_F_4W_HW_SPI display(U8G2_R2, /* cs=*/PIN_LCD_EN, 
                                                   /* dc=*/PIN_LCD_RS, 
@@ -34,6 +37,7 @@ int iRed         = pixels.Color(    0, 100,   0);
 int iGreen       = pixels.Color(  100,   0,   0);
 int iBlue        = pixels.Color(    0,   0, 100);
 int iWhite       = pixels.Color(  100, 100, 100);
+int iOff         = pixels.Color(    0,   0,   0);
 
 int iGreenBg     = pixels.Color(  200,   0,   0);
 int iYellowBg    = pixels.Color(  193, 204,   0);
@@ -492,7 +496,7 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
     else
     {
       g_lStartTime = BOOT_DONE;
-      setIndividualColor( true, iGreenBg );  // Display background
+      setIndividualColor( DISPLAY_BACKLIGHT, iGreenBg );  // Display background
     }
   }
   
@@ -691,10 +695,10 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
 
     if ( g_bShowPotColors )
     {
-      if ( PAGE3COL1 == yActiveIndicatorPosition ) setIndividualColor( false, iRed   );
-      if ( PAGE3COL2 == yActiveIndicatorPosition ) setIndividualColor( false, iGreen );
-      if ( PAGE3COL3 == yActiveIndicatorPosition ) setIndividualColor( false, iBlue  );
-      if ( PAGE3COL4 == yActiveIndicatorPosition ) setIndividualColor( false, iWhite );
+      if ( PAGE3COL1 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iRed   );
+      if ( PAGE3COL2 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iGreen );
+      if ( PAGE3COL3 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iBlue  );
+      if ( PAGE3COL4 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iWhite );
     }
 	}
 
@@ -706,6 +710,23 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
 //-------------------
 // Exported functions
 //-------------------
+
+void display_encoder_backlight( bool bOnOff )
+{
+  g_bShowPotColors = bOnOff;
+
+  if ( g_bShowPotColors )
+  {
+    if ( PAGE3COL1 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iRed   );
+    if ( PAGE3COL2 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iGreen );
+    if ( PAGE3COL3 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iBlue  );
+    if ( PAGE3COL4 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iWhite );
+  }
+  else
+  {
+    setIndividualColor( ENCODER_BACKLIGHT, iOff );
+  }
+}
 
 void display_set_contrast( bool bUp, bool bDown )
 {
@@ -867,16 +888,14 @@ bool display_set_function_button( byte yFunctionIdx, bool bValue )
   if ( yFunctionIdx < BUTTON_NUM )
   {
     // valid Index
-    abButtonStates[ yFunctionIdx ] = bValue;
-    bRetVal = true;
-
     // Special: If Shift is toggled, the page has to switch
     if ( IDX_SHIFT == yFunctionIdx )
     {
-      if ( abButtonStates[ yFunctionIdx ] )
+      if ( !abButtonStates[ yFunctionIdx ] && bValue )
       {
+        // Shift was off and now on
         // Shift Mode - Yellow Backgound
-        setIndividualColor( true, iYellowBg );
+        setIndividualColor( DISPLAY_BACKLIGHT, iYellowBg );
         
         if ( ( yCurrentPage == PAGE_NO_1 ) || ( yCurrentPage == PAGE_NO_2 ) )
         {
@@ -885,19 +904,23 @@ bool display_set_function_button( byte yFunctionIdx, bool bValue )
           Serial.println( "Should now be Page 2" );
         }
       }
-      else
+      else if ( abButtonStates[ yFunctionIdx ] && !bValue )
       {
+        // Shift was on and now off
         // normal Mode - Green Backgound
-        setIndividualColor( true, iGreenBg );
+        setIndividualColor( DISPLAY_BACKLIGHT, iGreenBg );
         
         if ( ( yCurrentPage == PAGE_NO_1 ) || ( yCurrentPage == PAGE_NO_2 ) )
         {
-          // Shift was false and is now true --> change to Page 1
+          // Shift was true and is now false --> change to Page 1
           yCurrentPage = PAGE_NO_1;
           Serial.println( "Should now be Page 1" );
         }
       }
     }
+
+    abButtonStates[ yFunctionIdx ] = bValue;
+    bRetVal = true;
   }
 
   return bRetVal;

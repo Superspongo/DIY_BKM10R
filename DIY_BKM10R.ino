@@ -18,13 +18,13 @@
 // Global variables
 //------------------
 
-bool m_bEncoderButtonEdge  = false;
-bool m_bFunctionButtonEdge = false;
+bool g_bEncoderButtonEdge  = false;
+bool g_bFunctionButtonEdge = false;
 
-unsigned long m_lActualTime;
-unsigned long m_lLastEncoderEdge = 0;    // the last time the output pin was toggled
+bool g_bToggleEncoderLight = false;
 
-static bool m_bToggleShift = false;
+unsigned long g_lActualTime;
+unsigned long g_lLastEncoderEdge = 0;    // the last time the output pin was toggled
 
 void setup() 
 {
@@ -66,27 +66,32 @@ static void ReadInputs()
   bool bFunctionButton = ReadSe( PIN_FUNCTION_BUTTON );
   bool bEncoderButton  = ReadSe( PIN_ENCODER_BUTTON  );
   
-  if ( ( m_lActualTime - m_lLastEncoderEdge ) > DEBOUNCE_TIME )
+  if ( ( g_lActualTime - g_lLastEncoderEdge ) > DEBOUNCE_TIME )
   {
     if ( !bEncoderButtonBuff && bEncoderButton )
     {
-      m_bEncoderButtonEdge = true;
-      m_lLastEncoderEdge   = m_lActualTime;
+      g_bEncoderButtonEdge = true;
+      g_lLastEncoderEdge   = g_lActualTime;
     }
   } 
   else
   {
-    m_bEncoderButtonEdge = false;
+    g_bEncoderButtonEdge = false;
   }
 
   // Function Button
   if ( !bFunctionButtonBuff && bFunctionButton )
   {
-    m_bFunctionButtonEdge = true;
+    g_bFunctionButtonEdge = true;
+    g_bToggleEncoderLight = !g_bToggleEncoderLight;
+
+    Serial.println( "Toggling backlight" );
+    Serial.println( "Toggling backlight" );
+    display_encoder_backlight( g_bToggleEncoderLight );
   }
   else
   {
-    m_bFunctionButtonEdge = false;
+    g_bFunctionButtonEdge = false;
   } 
 
   // Buffer zur Flankenerkennung
@@ -97,27 +102,20 @@ static void ReadInputs()
 void loop() 
 {
   // Zeitstempel, Senderaster
-  m_lActualTime = millis();
+  g_lActualTime = millis();
   
   ReadInputs();
   
-  ircomm_exec ( m_lActualTime );
+  ircomm_exec ( g_lActualTime );
   
   bkmcomm_exec();
   
   display_exec ( ircomm_get_event( Left,   PressEvent ), 
                  ircomm_get_event( Right,  PressEvent ), 
-                 m_bEncoderButtonEdge // Switch active Pot command
+                 g_bEncoderButtonEdge // Switch active Pot command
                );
   
   if ( ircomm_get_event( Source, PressEvent ) || ircomm_get_event( Green, PressEvent ) )display_set_brightness( true, false );
-
-  // Testen der Shift Toggle Funktion
-  if ( ircomm_get_event( Mute, PressEvent ) )
-  {
-    m_bToggleShift = !m_bToggleShift;
-    display_set_function_button( IDX_SHIFT, m_bToggleShift );
-  }
 
   if ( ircomm_get_event( Menu, PressEvent     ) )Serial.println( "Menu Press received" );
   if ( ircomm_get_event( Menu, LongPressEvent ) )Serial.println( "Menu Hold  received" );

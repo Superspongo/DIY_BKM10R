@@ -124,3 +124,4 @@ byte display_read_highlighted_function( void );
 byte display_read_active_encoder( void );
 void display_set_contrast( bool bUp, bool bDown );
 void display_set_brightness( bool bUp, bool bDown );
+void display_encoder_backlight( bool bOnOff );
