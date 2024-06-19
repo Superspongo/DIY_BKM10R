@@ -3,6 +3,7 @@
 Reproducing the main functionality of a SONY BKM 10R using the following components:
 
 ## Hardware
+* 1x Raspberry Pi Pico
 * 1x Makerbase MKS Mini 12864 v3 display module
 * 2x MAX485 RS485 module 
 * 1x Infrared Receiver
