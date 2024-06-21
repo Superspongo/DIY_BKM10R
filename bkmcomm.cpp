@@ -15,6 +15,7 @@ enum CurrentBank {
 };
 
 #define ENCODER_UPDATE_DELTA_MS (100)
+#define ENCODER_COUNT           (  4)
 
 #define LED_ADDR_SAFE_AREA  (0x0001)
 #define LED_F2_F4           (0x0002)
@@ -61,6 +62,12 @@ uint8_t group2leds = 0x0;
 uint8_t group3leds = 0x0;
 uint8_t group4leds = 0x0;
 
+// Received something from the monitor
+// or moved rotary encoder
+
+bool g_bSerialEventFlag = false;
+bool g_abRotaryEventFlags[ENCODER_COUNT];
+
 // Setup a RotaryEncoder with 2 steps per latch for the 2 signal input pins:
 RotaryEncoder encoder( PIN_ENCODER_2, PIN_ENCODER_1, RotaryEncoder::LatchMode::TWO03 );
 
@@ -71,6 +78,9 @@ void serialEvent()
   if(Serial1.available()) 
   {
     int received = Serial1.readBytes(buf,3);
+    
+    g_bSerialEventFlag = true;
+    
     if(received != 3) return;    // Invalid command length
     
     // ## DEBUG
@@ -144,6 +154,10 @@ void serialEvent()
       break;
     }
   }
+  else
+  {
+    g_bSerialEventFlag = false;
+  }
 }
 
 void wakeup_monitor() {
@@ -158,8 +172,6 @@ struct Encoder {
   int8_t m_value;
   uint8_t m_id;
 };
-
-#define ENCODER_COUNT (4)
 
 Encoder encoders[ENCODER_COUNT] = {
   { .m_value = 0, .m_id = ENCODER_PHASE    },
@@ -218,6 +230,11 @@ void checkEncoders()
     {
       reportEncoder(e.m_id,e.m_value);
       e.m_value = 0;
+      g_abRotaryEventFlags[j] = true;
+    }
+    else
+    {
+      g_abRotaryEventFlags[j] = false;
     }
   }
 
@@ -385,6 +402,16 @@ void updateLEDStates()
     display_set_function_button( IDX_ADDRESS,  false );
     display_set_function_button( IDX_SAFEAREA, false );            
   }
+}
+
+bool bkmcomm_event_flag( void )
+{
+  return (    g_bSerialEventFlag
+           || g_abRotaryEventFlags[0]
+           || g_abRotaryEventFlags[1]
+           || g_abRotaryEventFlags[2]
+           || g_abRotaryEventFlags[3]
+         );
 }
 
 void bkmcomm_exec( void ) {

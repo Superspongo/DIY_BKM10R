@@ -6,6 +6,7 @@
 #include "defines.h"
 #include "display.h"
 #include "ircomm.hpp"
+#include "bkmcomm.hpp"
 
 #define LED_BACKGROUND  (  0 )
 #define LED_ENCODER_1   (  1 )
@@ -28,7 +29,7 @@
 Adafruit_NeoPixel pixels(3, PIN_LCD_RGB, NEO_GRB + NEO_KHZ800);
 
 // Global Variables
-unsigned long g_lLastIREvent;
+unsigned long g_lLastInputEvent;
 unsigned long g_lStartTime;
 byte g_yContrast        = CONTRAST_LCD_DEF;
 byte g_yBrightness      = BRIGHTNESS_LCD_DEF;
@@ -505,24 +506,26 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
     }
   }
   
-  //--------------
+    //--------------
   // Backlight
   //--------------
-
-  if ( ircomm_event_flag() )
+  if (    ircomm_event_flag() 
+       || bkmcomm_event_flag()
+       || bMoveActiveIndicator
+     )
   {
     // Update timestamp
-    g_lLastIREvent = millis();
+    g_lLastInputEvent = millis();
   }
   
   // Disable backlight when idle
-  if ( ( ( millis() - g_lLastIREvent ) > TIMEOUT_BACKLIGHT ) )
+  if ( ( ( millis() - g_lLastInputEvent ) > TIMEOUT_BACKLIGHT ) )
   {
     if( !g_bBacklightIsIdle )
     {
       pixels.setBrightness( BRIGHTNESS_LCD_IDLE );
-      pixels.show();
-      g_bBacklightIsIdle = true;
+      pixels.show();       
+      g_bBacklightIsIdle = true;                        
     }
   }
   else
@@ -530,11 +533,11 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
     if ( g_bBacklightIsIdle )
     {
       pixels.setBrightness( g_yBrightness );
-      pixels.show();
-      g_bBacklightIsIdle = false;
+      if ( !bMoveActiveIndicator ) pixels.show(); // The Active Indicator Button triggers its own "Show"
+      g_bBacklightIsIdle = false;                 // and it can appearently only be called once per cycle
     }
   }
-    
+  
   //------------------------------
   // process Inputs
   //
@@ -736,7 +739,6 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
       if ( PAGE3COL4 == yActiveIndicatorPosition ) setIndividualColor( ENCODER_BACKLIGHT, iWhite );
     }
 	}
-
   //---------------------
 
   displayPage( yCurrentPage );
