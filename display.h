@@ -11,6 +11,8 @@
 #define BRIGHTNESS_LCD_DEF  ( 200 ) 
 #define BRIGHTNESS_LCD_STEP (  50 )
 
+#define BRIGHTNESS_LCD_IDLE (  20 )
+
 #define BOOT_LOGO_TIME      ( 3000 )  // Boot logo in ms
 #define BOOT_DONE           ( 0xFFFFFFFFU )
 

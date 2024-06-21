@@ -18,6 +18,7 @@ unsigned long lTimeLastReceived;
 uint8_t  ayButtonEvents[ IR_BUTTON_NUM ];
 uint16_t wFirstReceived;
 uint16_t wLastHoldEvent;
+bool     bEventReceived = false;
 
 void ircomm_init( void )
 {
@@ -139,8 +140,9 @@ void ircomm_exec( unsigned long lActualTime )
   {
     if ( IrReceiver.decodedIRData.protocol != UNKNOWN ) 
     { 
+      bEventReceived = true;  
+      
       bHandleData = true;
-      //Serial.println( "Isch hab da was!" );  schneller debug
 
       lTimeLastReceived = lActualTime;
       // Wenn der Knopf gedrückt gehalten wird, dann bekommt der Receiver ca. alle 50ms einen neuen Wert
@@ -166,6 +168,8 @@ void ircomm_exec( unsigned long lActualTime )
     {
       // Reset all keys
       ResetLocalRuntimeArray();
+
+      bEventReceived = false;
     }
   }    
 }
@@ -202,4 +206,9 @@ bool ircomm_get_event ( IRCOMM_BUTTON eButton, IRCOMM_FUNC eFunction )
 bool ircomm_get_press ( IRCOMM_BUTTON eButton )
 {
   return ircomm_get_event( eButton, PressEvent );
+}
+
+bool ircomm_event_flag( void )
+{
+  return bEventReceived;
 }

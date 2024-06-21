@@ -5,6 +5,7 @@
 #include "graphics.h"
 #include "defines.h"
 #include "display.h"
+#include "ircomm.hpp"
 
 #define LED_BACKGROUND  (  0 )
 #define LED_ENCODER_1   (  1 )
@@ -12,6 +13,8 @@
 
 #define DISPLAY_BACKLIGHT   (  true )
 #define ENCODER_BACKLIGHT   ( false )
+
+#define TIMEOUT_BACKLIGHT   ( 10000 ) // ten seconds
 
 // Hardware Solution. MUST SET SPI PINS!! See setup
  U8G2_ST7567_OS12864_F_4W_HW_SPI display(U8G2_R2, /* cs=*/PIN_LCD_EN, 
@@ -21,13 +24,15 @@
 // SOFTWARE SOLUTION WORKS!
 //U8G2_ST7567_OS12864_F_4W_SW_SPI display (U8G2_R2 , PIN_LCD_SPI_SCK, PIN_LCD_SPI_MOSI, PIN_LCD_EN, PIN_LCD_RS, PIN_LCD_RESET);
 
-// Hintergrundbeleuchtung
+// Backlight
 Adafruit_NeoPixel pixels(3, PIN_LCD_RGB, NEO_GRB + NEO_KHZ800);
 
 // Global Variables
+unsigned long g_lLastIREvent;
 unsigned long g_lStartTime;
-byte g_yContrast   = CONTRAST_LCD_DEF;
-byte g_yBrightness = BRIGHTNESS_LCD_DEF;
+byte g_yContrast        = CONTRAST_LCD_DEF;
+byte g_yBrightness      = BRIGHTNESS_LCD_DEF;
+bool g_bBacklightIsIdle = false;
 
 // Show the pot background colors
 bool g_bShowPotColors = true;
@@ -500,6 +505,36 @@ void display_exec( bool bMoveCursorLeft, bool bMoveCursorRight, bool bMoveActive
     }
   }
   
+  //--------------
+  // Backlight
+  //--------------
+
+  if ( ircomm_event_flag() )
+  {
+    // Update timestamp
+    g_lLastIREvent = millis();
+  }
+  
+  // Disable backlight when idle
+  if ( ( ( millis() - g_lLastIREvent ) > TIMEOUT_BACKLIGHT ) )
+  {
+    if( !g_bBacklightIsIdle )
+    {
+      pixels.setBrightness( BRIGHTNESS_LCD_IDLE );
+      pixels.show();
+      g_bBacklightIsIdle = true;
+    }
+  }
+  else
+  {
+    if ( g_bBacklightIsIdle )
+    {
+      pixels.setBrightness( g_yBrightness );
+      pixels.show();
+      g_bBacklightIsIdle = false;
+    }
+  }
+    
   //------------------------------
   // process Inputs
   //
