@@ -20,4 +20,6 @@ Reproducing the main functionality of a SONY BKM 10R using the following compone
 
 The communication to the monitor is based on the excellent work of Martin Hejnfelts BKM-10rlternative (https://github.com/skumlos/bkm-10rlternative).
 
+
+See this project in action:
 https://www.youtube.com/watch?v=oZMb17oDjyI
