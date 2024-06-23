@@ -19,3 +19,5 @@ Reproducing the main functionality of a SONY BKM 10R using the following compone
 * IRRemote library (https://github.com/Arduino-IRremote/Arduino-IRremote)
 
 The communication to the monitor is based on the excellent work of Martin Hejnfelts BKM-10rlternative (https://github.com/skumlos/bkm-10rlternative).
+
+https://www.youtube.com/watch?v=oZMb17oDjyI
